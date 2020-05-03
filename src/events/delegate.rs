@@ -2,11 +2,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use log::warn;
 
-use super::{payload::*, PayloadChannel};
+use super::{payload::*, PayloadDuplex};
 
 #[async_trait]
 #[allow(unused_variables)]
-pub trait PayloadDelegate: PayloadChannel {
+pub trait PayloadDelegate: PayloadDuplex {
     async fn delegate_payload(&mut self, payload: &Payload) -> Result<()> {
         match payload {
             Payload::Dispatch(data) => self.dispatch(data).await,

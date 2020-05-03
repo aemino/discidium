@@ -11,6 +11,18 @@ pub trait EventDelegate {
     fn ready(&self) {}
 }
 
-pub trait PayloadChannel: AsyncStream<Item = Payload> + AsyncSink<Item = Payload> {}
+pub trait PayloadDuplex:
+    AsyncStream<Item = Payload, Error = anyhow::Error>
+    + AsyncSink<Item = Payload, Error = anyhow::Error>
+    + Send
+    + Sync
+{
+}
 
-impl<T: AsyncStream<Item = Payload> + AsyncSink<Item = Payload>> PayloadChannel for T {}
+impl<T> PayloadDuplex for T where
+    T: AsyncStream<Item = Payload, Error = anyhow::Error>
+        + AsyncSink<Item = Payload, Error = anyhow::Error>
+        + Send
+        + Sync
+{
+}
