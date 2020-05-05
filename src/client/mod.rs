@@ -54,7 +54,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn run_with_options(&self, options: RunOptions<'_>) -> Result<(), JoinError> {
+    pub async fn run_with_options(&self, options: RunOptions<'_>) -> Result<()> {
         // TODO: Proper, non-anyhow error handling
 
         options
@@ -71,7 +71,9 @@ impl Client {
             })
             .collect::<FuturesUnordered<_>>()
             .try_collect::<Vec<_>>()
-            .await?;
+            .await?
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(())
     }
