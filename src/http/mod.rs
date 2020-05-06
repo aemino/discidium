@@ -56,7 +56,7 @@ impl Http {
         ")",
     );
 
-    const BASE_HOST: &'static str = "https://discordapp.com/";
+    const BASE_HOST: &'static str = "https://discord.com/";
 
     pub fn new(token: impl AsRef<str>) -> Result<Self> {
         let mut token_header = HeaderValue::from_str(token.as_ref())?;
