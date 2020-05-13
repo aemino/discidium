@@ -217,6 +217,15 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
         }
     }
 
+    /// Computes a delay for reconnecting based on the number of previous
+    /// `conn_attempts` using exponential backoff.
+    #[inline]
+    fn compute_connect_delay(conn_attempts: u32) -> Duration {
+        // Delay follows the form 5 * 2^n where n is the number of previous attempts.
+        // n is capped at 6 to prevent the delay from becoming unreasonably long.
+        Duration::from_secs(5 * 2u64.pow(conn_attempts.min(6)))
+    }
+
     async fn connect(
         &mut self,
     ) -> Result<GatewayStream<C::Input, C::Output>, ConnectError<anyhow::Error>> {
@@ -246,7 +255,7 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
                     Ok(conn) => break conn,
                     Err(conn_err) => match conn_err {
                         ConnectError::ShouldReconnect => {
-                            delay_for(Duration::from_secs(5 * 2u64.pow(conn_attempts.min(6)))).await
+                            delay_for(Self::compute_connect_delay(conn_attempts)).await
                         }
                         ConnectError::ShouldAbort(err) => return Err(err),
                     },
