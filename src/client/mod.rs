@@ -1,7 +1,7 @@
 use anyhow::Result;
 use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
-use tokio::task::{self, JoinError};
+use tokio::task;
 
 use crate::{
     events::{EventDelegate, PayloadDuplex},
@@ -40,7 +40,7 @@ impl Client {
         Context::new(self, ())
     }
 
-    pub async fn run(&self, delegate: &dyn EventDelegate) -> Result<()> {
+    pub async fn run<D: EventDelegate>(&self, delegate: &D) -> Result<()> {
         let gateway = Gateway::get(&self.context()).await?;
 
         debug!("[Client] Using gateway {:?}", gateway);
@@ -54,7 +54,10 @@ impl Client {
         Ok(())
     }
 
-    pub async fn run_with_options(&self, options: RunOptions<'_>) -> Result<()> {
+    pub async fn run_with_options<D: EventDelegate>(
+        &self,
+        options: RunOptions<'_, D>,
+    ) -> Result<()> {
         // TODO: Proper, non-anyhow error handling
 
         options

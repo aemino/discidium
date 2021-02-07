@@ -1,12 +1,12 @@
 use crate::events::{EventDelegate, PayloadDuplex};
 
-pub struct RunOptions<'run> {
-    pub(crate) delegate: &'run dyn EventDelegate,
+pub struct RunOptions<'run, D> {
+    pub(crate) delegate: &'run D,
     pub(crate) payload_duplexes: Vec<Box<dyn PayloadDuplex>>,
 }
 
-impl<'run> RunOptions<'run> {
-    pub fn with_delegate(delegate: &'run dyn EventDelegate) -> Self {
+impl<'run, D: EventDelegate> RunOptions<'run, D> {
+    pub fn with_delegate(delegate: &'run D) -> Self {
         Self {
             delegate,
             payload_duplexes: Vec::new(),

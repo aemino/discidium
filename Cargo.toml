@@ -3,25 +3,26 @@ name = "discidium"
 version = "0.1.0"
 authors = ["aemino <aeminodev@gmail.com>"]
 edition = "2018"
+homepage = "https://github.com/aemino/discidium"
 
 [dependencies]
-async-trait = "0.1.30"
-anyhow = "1.0.28"
-async-tungstenite = { version = "0.4.2", features = ["tokio-runtime", "tokio-tls"] }
-flate2 = "1.0.14"
-futures = "0.3.4"
-http = "0.2.1"
-hyper = "0.13.5"
-hyper-tls = "0.4.1"
-log = "0.4.8"
-regex = "1.3.7"
-serde = { version = "1.0.106", features = ["derive"] }
-serde_json = "1.0.51"
-serde_repr = "0.1.5"
-serde_urlencoded = "0.6.1"
-thiserror = "1.0.15"
-tokio = { version = "0.2.18", features = ["macros"] }
-url = "2.1.1"
+async-trait = "0.1.42"
+anyhow = "1.0.38"
+async-tungstenite = { version = "0.12.0", features = ["tokio-runtime", "tokio-rustls"] }
+flate2 = "1.0.20"
+futures = "0.3.12"
+http = "0.2.3"
+hyper = { version = "0.14.4", features = ["client", "http2"] }
+hyper-tls = "0.5.0"
+log = "0.4.14"
+regex = "1.4.3"
+serde = { version = "1.0.123", features = ["derive"] }
+serde_json = "1.0.61"
+serde_repr = "0.1.6"
+serde_urlencoded = "0.7.0"
+thiserror = "1.0.23"
+tokio = { version = "1.1.1", features = ["macros", "rt", "time"] }
+url = "2.2.0"
 
 [dev-dependencies]
 fern = "0.6.0"

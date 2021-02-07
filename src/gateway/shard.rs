@@ -10,7 +10,7 @@ use async_tungstenite::tungstenite::{protocol::frame::coding::CloseCode, Message
 use futures::{SinkExt, StreamExt};
 use log::{debug, trace};
 use serde_json;
-use tokio::time::{delay_for, timeout, timeout_at};
+use tokio::time::{sleep, timeout, timeout_at};
 
 use super::{
     GatewayCompression, GatewayConnectionParams, GatewayConnector, GatewayStream,
@@ -255,7 +255,7 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
                     Ok(conn) => break conn,
                     Err(conn_err) => match conn_err {
                         ConnectError::ShouldReconnect => {
-                            delay_for(Self::compute_connect_delay(conn_attempts)).await
+                            sleep(Self::compute_connect_delay(conn_attempts)).await
                         }
                         ConnectError::ShouldAbort(err) => return Err(err),
                     },
@@ -360,11 +360,7 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
 impl<C: GatewayConnector + Send + Sync> Shard<C> {
     #[inline]
     fn next_heartbeat_time(state: &GatewayState<C>) -> Option<Instant> {
-        if let Some(heartbeat_interval) = state.heartbeat_interval {
-            Some(state.last_heartbeat + heartbeat_interval)
-        } else {
-            None
-        }
+        state.heartbeat_interval.map(|heartbeat_interval| state.last_heartbeat + heartbeat_interval)
     }
 
     #[inline]
