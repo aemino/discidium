@@ -17,8 +17,8 @@ impl Gateway {
         Api::route().join("/gateway")
     }
 
-    pub async fn get(ctx: &Context<'_>) -> Result<Gateway> {
-        Gateway::route().get().send(ctx, ()).await
+    pub async fn get(ctx: &Context<'_>) -> Result<Self> {
+        Self::route().get().send(ctx, ()).await
     }
 
     /// The URL that can be used to connect to the gateway.

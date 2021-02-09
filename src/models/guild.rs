@@ -1,17 +1,134 @@
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
+use crate::models::Resource;
+
 use super::prelude::*;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize)]
+#[serde(transparent)]
 pub struct GuildId {
     id: Snowflake,
 }
 
 impl ResourceId for GuildId {
-    fn id(&self) -> &Snowflake {
-        &self.id
+    fn id(&self) -> Snowflake {
+        self.id
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
+pub struct Guild {
+    pub id: GuildId,
+    pub name: String,
+    pub region: String,
+    pub preferred_locale: String,
+    pub verification_level: VerificationLevel,
+    pub default_message_notifications: MessageNotificationLevel,
+    pub explicit_content_filter: ExplicitContentFilterLevel,
+    pub mfa_level: MfaLevel,
+    pub features: Vec<GuildFeature>,
+    // TODO: application_id
+    pub roles: Vec<PartialGuildRole>,
+
+    // TODO: emoji
+    #[serde(flatten)]
+    pub afk_details: AfkDetails,
+
+    #[serde(flatten)]
+    pub premium: PremiumDetails,
+
+    #[serde(flatten)]
+    pub system_channel: SystemChannelDetails,
+
+    #[serde(rename = "icon", default)]
+    pub icon_hash: Option<String>,
+
+    #[serde(rename = "splash", default)]
+    pub splash_hash: Option<String>,
+
+    #[serde(rename = "discovery_splash", default)]
+    pub discovery_splash_hash: Option<String>,
+
+    #[serde(rename = "banner", default)]
+    pub banner_hash: Option<String>,
+
+    #[serde(default)]
+    pub vanity_url_code: Option<String>,
+
+    #[serde(default)]
+    pub description: Option<String>,
+    // TODO: max_video_channel_users is undocumented
+}
+
+impl Resource for Guild {
+    type Id = GuildId;
+
+    fn id(&self) -> GuildId {
+        self.id
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
+pub struct ExtendedGuild {
+    #[serde(flatten)]
+    pub partial: Guild,
+
+    #[serde(rename = "owner", default)]
+    pub is_owner: Option<bool>,
+
+    #[serde(flatten)]
+    pub embed: EmbedDetails,
+
+    #[serde(flatten)]
+    pub widget: WidgetDetails,
+
+    #[serde(rename = "max_presences")]
+    pub max_presence_count: Option<u64>,
+
+    #[serde(rename = "max_members")]
+    pub max_member_count: u64,
+
+    #[serde(default)]
+    pub approximate_member_count: Option<u64>,
+
+    #[serde(default)]
+    pub approximate_presence_count: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct GuildRoleId {
+    id: Snowflake,
+}
+
+impl ResourceId for GuildRoleId {
+    fn id(&self) -> Snowflake {
+        self.id
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
+pub struct PartialGuildRole {
+    pub id: GuildRoleId,
+    pub name: String,
+    // TODO: Color stuct
+    pub color: u32,
+    pub position: u64,
+    // TODO: Permissions bitfield struct
+    pub permissions: u64,
+
+    #[serde(rename = "hoist")]
+    pub is_hoisted: bool,
+
+    #[serde(rename = "managed")]
+    pub is_managed: bool,
+
+    #[serde(rename = "mentionable")]
+    pub is_mentionable: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

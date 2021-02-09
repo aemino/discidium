@@ -128,7 +128,10 @@ impl Http {
         let res = self.client.request(req).await?;
         let res_data = hyper::body::to_bytes(res.into_body()).await?;
 
-        debug!("[Http] Received response for request to {:?} -> {:?}", url, res_data);
+        debug!(
+            "[Http] Received response for request to {:?} -> {:?}",
+            url, res_data
+        );
 
         let res_content = serde_json::from_slice(&res_data)?;
 

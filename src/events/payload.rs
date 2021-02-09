@@ -2,6 +2,20 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use super::dispatch::guild::*;
+
+// A temporary workaround for https://github.com/serde-rs/serde/issues/1714
+mod workaround {
+    use serde::{Deserializer, de::IgnoredAny};
+
+    pub fn deserialize_unknown_event<'de, D>(deserializer: D) -> Result<(), D::Error>
+        where D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(IgnoredAny)?;
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "op")]
 #[non_exhaustive]
@@ -39,17 +53,19 @@ pub struct Dispatch {
     #[serde(rename = "s")]
     pub seqnum: u64,
 
-    #[serde(rename = "d", flatten)]
+    #[serde(flatten)]
     pub event: DispatchEvent,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "t", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(tag = "t", content = "d", rename_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum DispatchEvent {
     Ready {},
 
-    #[serde(other)]
+    GuildCreate(GuildCreate),
+
+    #[serde(other, deserialize_with = "workaround::deserialize_unknown_event")]
     Unknown,
 }
 

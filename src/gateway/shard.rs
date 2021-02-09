@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use async_tungstenite::tungstenite::{protocol::frame::coding::CloseCode, Message as WsMessage};
 use futures::{SinkExt, StreamExt};
 use log::{debug, trace};
+use regex::bytes::Regex;
 use serde_json;
 use tokio::time::{sleep, timeout, timeout_at};
 
@@ -21,7 +22,6 @@ use crate::{
     models::Gateway,
     util::{AsyncSink, AsyncStream, NoneError},
 };
-use regex::Regex;
 
 #[derive(Clone, Debug)]
 #[non_exhaustive]
@@ -161,28 +161,28 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
     }
 
     // FIXME: This is a hack. This should be removed as soon as `serde` has support
-    // for integer tag renaming.
+    // for integer/bool tag renaming.
     #[inline]
-    fn deserialize_workaround_json(string: &str) -> Cow<str> {
-        Regex::new(r#""op":\s*(\d+)"#)
+    fn deserialize_workaround_json(bytes: &[u8]) -> Cow<[u8]> {
+        Regex::new(r#""(op|unavailable)":\s*(\d+|true|false)"#)
             .unwrap()
-            .replace(string, "\"op\":\"$1\"")
+            .replace_all(bytes, "\"$1\":\"$2\"".as_bytes())
     }
 
     // FIXME: This is a hack. This should be removed as soon as `serde` has support
-    // for integer tag renaming.
+    // for integer/bool tag renaming.
     #[inline]
-    fn serialize_workaround_json(string: &str) -> Cow<str> {
-        Regex::new(r#""op":\s*"(\d+)""#)
+    fn serialize_workaround_json(bytes: &[u8]) -> Cow<[u8]> {
+        Regex::new(r#""(op|unavailable)":\s*"(\d+|true|false)""#)
             .unwrap()
-            .replace(string, "\"op\":$1")
+            .replace_all(bytes, "\"$1\":$2".as_bytes())
     }
 
     #[inline]
     fn decode_bytes(&self, bytes: &[u8]) -> Result<Payload> {
         match self.encoding {
             PayloadEncoding::Json => Ok(serde_json::from_slice(
-                Self::deserialize_workaround_json(std::str::from_utf8(bytes)?).as_bytes(),
+                Self::deserialize_workaround_json(bytes).as_ref(),
             )?),
             PayloadEncoding::Etf => unimplemented!(),
         }
@@ -209,10 +209,9 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
         trace!("[Shard] Serializing payload {:?}", payload);
 
         match self.encoding {
-            PayloadEncoding::Json => Ok(WsMessage::Text(
-                Self::serialize_workaround_json(serde_json::to_string(&payload)?.as_str())
-                    .into_owned(),
-            )),
+            PayloadEncoding::Json => Ok(WsMessage::Text(String::from_utf8(
+                Self::serialize_workaround_json(&serde_json::to_vec(&payload)?).into(),
+            )?)),
             PayloadEncoding::Etf => unimplemented!(),
         }
     }

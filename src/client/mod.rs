@@ -1,13 +1,12 @@
 use anyhow::Result;
-use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
-use tokio::task;
 
 use crate::{
     events::{EventDelegate, PayloadDuplex},
     gateway::Shard,
     http::Http,
-    models::Gateway,
+    models::{Gateway, Guild},
+    store::memory::MemoryStore,
 };
 
 mod context;
@@ -48,35 +47,11 @@ impl Client {
         let shards: Vec<Box<dyn PayloadDuplex>> =
             vec![Box::new(Shard::default_with(gateway, self.token.clone()))];
 
-        self.run_with_options(RunOptions::with_delegate(delegate).payload_duplexes(shards))
+        RunOptions::with_delegate(delegate)
+            .add_payload_duplexes(shards)
+            .register_store(MemoryStore::<Guild>::new())
+            .run()
             .await?;
-
-        Ok(())
-    }
-
-    pub async fn run_with_options<D: EventDelegate>(
-        &self,
-        options: RunOptions<'_, D>,
-    ) -> Result<()> {
-        // TODO: Proper, non-anyhow error handling
-
-        options
-            .payload_duplexes
-            .into_iter()
-            .map(|mut duplex| {
-                task::spawn(async move {
-                    while let Some(payload) = duplex.next().await.transpose()? {
-                        println!("payload :: {:?}", payload);
-                    }
-
-                    Ok::<(), anyhow::Error>(())
-                })
-            })
-            .collect::<FuturesUnordered<_>>()
-            .try_collect::<Vec<_>>()
-            .await?
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(())
     }

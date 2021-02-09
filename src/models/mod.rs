@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use serde::Serialize;
 
 mod channel;
@@ -17,12 +19,18 @@ pub use channel::*;
 pub use gateway::*;
 pub use guild::*;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct Snowflake(u64);
 
-pub trait ResourceId {
-    fn id(&self) -> &Snowflake;
+pub trait ResourceId: Copy + Hash + Ord {
+    fn id(&self) -> Snowflake;
+}
+
+pub trait Resource: Clone {
+    type Id: Eq + Hash + Send + Sync;
+
+    fn id(&self) -> Self::Id;
 }
 
 // TODO: Custom Serialize derivation using `Serializer::is_human_readable`
