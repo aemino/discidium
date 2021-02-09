@@ -1,8 +1,6 @@
 #[cfg(feature = "memory-store")]
 pub mod memory;
 
-use std::hash::Hash;
-
 use async_trait::async_trait;
 
 use crate::models::Resource;

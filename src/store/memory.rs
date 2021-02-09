@@ -30,18 +30,18 @@ impl<R> Store<R> for MemoryStore<R>
 where
     R: 'static + Resource + Send + Sync,
 {
-    async fn get<'s>(&'s self, ids: &[R::Id]) -> Vec<R> {
+    async fn get(&self, ids: &[R::Id]) -> Vec<R> {
         ids.iter().filter_map(|id| self._get(id)).collect()
     }
 
-    async fn insert<'s>(&'s self, resources: &[R]) -> Vec<R> {
+    async fn insert(&self, resources: &[R]) -> Vec<R> {
         resources
             .iter()
             .filter_map(|resource| self._insert(resource))
             .collect()
     }
 
-    async fn remove<'s>(&'s self, ids: &[R::Id]) -> Vec<R> {
+    async fn remove(&self, ids: &[R::Id]) -> Vec<R> {
         ids.iter().flat_map(|id| self._remove(id)).collect()
     }
 
