@@ -2,7 +2,7 @@ use anyhow::Result;
 use log::debug;
 
 use crate::{
-    events::{EventDelegate, PayloadDuplex},
+    events::PayloadDuplex,
     gateway::Shard,
     http::Http,
     models::{Gateway, Guild},
@@ -12,7 +12,7 @@ use crate::{
 mod context;
 mod run;
 
-pub use self::{context::Context, run::RunOptions};
+pub use self::{context::Context, run::Runner};
 
 pub struct Client {
     token: String,
@@ -39,7 +39,7 @@ impl Client {
         Context::new(self, ())
     }
 
-    pub async fn run<D: EventDelegate>(&self, delegate: &D) -> Result<()> {
+    pub async fn default_runner(&self) -> Result<Runner> {
         let gateway = Gateway::get(&self.context()).await?;
 
         debug!("[Client] Using gateway {:?}", gateway);
@@ -47,12 +47,12 @@ impl Client {
         let shards: Vec<Box<dyn PayloadDuplex>> =
             vec![Box::new(Shard::default_with(gateway, self.token.clone()))];
 
-        RunOptions::with_delegate(delegate)
-            .add_payload_duplexes(shards)
-            .register_store(MemoryStore::<Guild>::new())
-            .run()
-            .await?;
+        let mut runner = Runner::new();
 
-        Ok(())
+        runner
+            .add_payload_duplexes(shards)
+            .register_store(MemoryStore::<Guild>::new());
+
+        Ok(runner)
     }
 }

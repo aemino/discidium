@@ -7,10 +7,6 @@ pub mod payload;
 pub use delegate::PayloadDelegate;
 pub use payload::Payload;
 
-pub trait EventDelegate {
-    fn ready(&self) {}
-}
-
 pub trait PayloadDuplex:
     AsyncStream<Item = Payload, Error = anyhow::Error>
     + AsyncSink<Item = Payload, Error = anyhow::Error>

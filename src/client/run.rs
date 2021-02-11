@@ -1,43 +1,40 @@
-use anyhow::Result;
-use futures::{stream::FuturesUnordered, TryStreamExt};
-use tokio::task;
-use type_map::TypeMap;
+use futures_async_stream::try_stream;
+use streamunordered::{StreamUnordered, StreamYield};
+use type_map::concurrent::TypeMap;
 
 use crate::{
-    events::{EventDelegate, PayloadDuplex},
+    events::{Payload, PayloadDuplex},
     models::Resource,
     store::Store,
 };
 
-pub struct RunOptions<'run, D> {
-    pub(crate) delegate: &'run D,
+pub struct Runner {
     pub(crate) payload_duplexes: Vec<Box<dyn PayloadDuplex>>,
     pub(crate) stores: TypeMap,
 }
 
 pub type StoreCollection<R> = Vec<Box<dyn Store<R>>>;
 
-impl<'run, D: EventDelegate> RunOptions<'run, D> {
-    pub fn with_delegate(delegate: &'run D) -> Self {
+impl Runner {
+    pub fn new() -> Self {
         Self {
-            delegate,
             payload_duplexes: Default::default(),
             stores: Default::default(),
         }
     }
 
     pub fn add_payload_duplexes(
-        mut self,
+        &mut self,
         duplexes: impl IntoIterator<Item = Box<dyn PayloadDuplex>>,
-    ) -> Self {
+    ) -> &mut Self {
         self.payload_duplexes.extend(duplexes);
         self
     }
 
     pub fn register_store<R: 'static + Resource + Send + Sync>(
-        mut self,
+        &mut self,
         store: impl Store<R>,
-    ) -> Self {
+    ) -> &mut Self {
         self.stores
             .entry::<StoreCollection<R>>()
             .or_insert_with(Default::default)
@@ -47,9 +44,9 @@ impl<'run, D: EventDelegate> RunOptions<'run, D> {
     }
 
     pub fn register_stores<R: 'static + Resource>(
-        mut self,
+        &mut self,
         stores: impl IntoIterator<Item = Box<dyn Store<R>>>,
-    ) -> Self {
+    ) -> &mut Self {
         self.stores
             .entry::<StoreCollection<R>>()
             .or_insert_with(Default::default)
@@ -58,26 +55,29 @@ impl<'run, D: EventDelegate> RunOptions<'run, D> {
         self
     }
 
-    pub async fn run(self) -> Result<()> {
-        // TODO: Proper, non-anyhow error handling
-
-        self.payload_duplexes
-            .into_iter()
-            .map(|mut duplex| {
-                task::spawn(async move {
-                    while let Some(payload) = duplex.next().await.transpose()? {
-                        println!("payload :: {:?}", payload);
+    #[try_stream(ok = Payload, error = anyhow::Error)]
+    pub async fn run(&mut self) {
+        // TODO: Once PayloadDuplex impls the "real" Stream/Sink traits, this can be
+        // simplified further.
+        let payload_stream = self
+            .payload_duplexes
+            .iter_mut()
+            .map(|duplex| {
+                #[stream]
+                async move {
+                    while let Some(payload) = duplex.next().await {
+                        yield payload;
                     }
-
-                    Ok::<(), anyhow::Error>(())
-                })
+                }
             })
-            .collect::<FuturesUnordered<_>>()
-            .try_collect::<Vec<_>>()
-            .await?
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<StreamUnordered<_>>();
 
-        Ok(())
+        #[for_await]
+        for (result, _token) in payload_stream {
+            match result {
+                StreamYield::Item(payload) => yield payload?,
+                StreamYield::Finished(stream) => stream.keep(),
+            }
+        }
     }
 }
