@@ -1,26 +1,31 @@
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
+use serde_repr::{Deserialize_repr as DeserializeRepr, Serialize_repr as SerializeRepr};
 
-use crate::models::Resource;
+use crate::models::prelude::*;
 
-use super::prelude::*;
+create_id!(pub GuildId {});
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct GuildId {
-    id: Snowflake,
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
+pub struct UnavailableGuild {
+    #[serde(flatten)]
+    pub id: GuildId,
+
+    #[serde(rename = "_received_at", default = "Utc::now")]
+    pub(crate) received_at: DateTime<Utc>,
 }
 
-impl ResourceId for GuildId {
-    fn id(&self) -> Snowflake {
-        self.id
-    }
-}
+impl_resource!(UnavailableGuild, GuildId);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct Guild {
-    pub id: GuildId,
+    #[serde(flatten)]
+    id: GuildId,
+
+    #[serde(rename = "_received_at", default = "Utc::now")]
+    pub(crate) received_at: DateTime<Utc>,
+
     pub name: String,
     pub region: String,
     pub preferred_locale: String,
@@ -62,13 +67,7 @@ pub struct Guild {
     // TODO: max_video_channel_users is undocumented
 }
 
-impl Resource for Guild {
-    type Id = GuildId;
-
-    fn id(&self) -> GuildId {
-        self.id
-    }
-}
+impl_resource!(Guild, GuildId);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[non_exhaustive]
@@ -98,22 +97,14 @@ pub struct ExtendedGuild {
     pub approximate_presence_count: Option<u64>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct GuildRoleId {
-    id: Snowflake,
-}
-
-impl ResourceId for GuildRoleId {
-    fn id(&self) -> Snowflake {
-        self.id
-    }
-}
+create_id!(pub GuildRoleId {});
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct PartialGuildRole {
+    #[serde(flatten)]
     pub id: GuildRoleId,
+
     pub name: String,
     // TODO: Color stuct
     pub color: u32,
@@ -134,7 +125,7 @@ pub struct PartialGuildRole {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct AfkDetails {
-    #[serde(rename = "afk_channel_id", default)]
+    #[serde(rename = "afk_channel_id", default, flatten)]
     channel_id: Option<ChannelId>,
 
     #[serde(rename = "afk_timeout")]
@@ -155,7 +146,7 @@ pub struct PremiumDetails {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct EmbedDetails {
-    #[serde(rename = "embed_channel_id", default)]
+    #[serde(rename = "embed_channel_id", default, flatten)]
     channel_id: Option<ChannelId>,
 
     #[serde(rename = "embed_enabled")]
@@ -165,7 +156,7 @@ pub struct EmbedDetails {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct WidgetDetails {
-    #[serde(rename = "widget_channel_id", default)]
+    #[serde(rename = "widget_channel_id", default, flatten)]
     channel_id: Option<ChannelId>,
 
     #[serde(rename = "widget_enabled")]
@@ -175,7 +166,7 @@ pub struct WidgetDetails {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct SystemChannelDetails {
-    #[serde(rename = "system_channel_id", default)]
+    #[serde(rename = "system_channel_id", default, flatten)]
     id: Option<ChannelId>,
 
     // TODO: Create bitfield
@@ -186,11 +177,11 @@ pub struct SystemChannelDetails {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct RulesChannelDetails {
-    #[serde(rename = "rules_channel_id", default)]
+    #[serde(rename = "rules_channel_id", default, flatten)]
     id: Option<ChannelId>,
 }
 
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(Clone, Debug, DeserializeRepr, SerializeRepr)]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum VerificationLevel {
@@ -201,7 +192,7 @@ pub enum VerificationLevel {
     VeryHigh = 4,
 }
 
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(Clone, Debug, DeserializeRepr, SerializeRepr)]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum MessageNotificationLevel {
@@ -209,7 +200,7 @@ pub enum MessageNotificationLevel {
     Mentions = 1,
 }
 
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(Clone, Debug, DeserializeRepr, SerializeRepr)]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum ExplicitContentFilterLevel {
@@ -218,7 +209,7 @@ pub enum ExplicitContentFilterLevel {
     AllMembers = 2,
 }
 
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(Clone, Debug, DeserializeRepr, SerializeRepr)]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum MfaLevel {
@@ -226,7 +217,7 @@ pub enum MfaLevel {
     Elevated = 1,
 }
 
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(Clone, Debug, DeserializeRepr, SerializeRepr)]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum PremiumTierLevel {

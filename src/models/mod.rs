@@ -1,21 +1,75 @@
 use std::hash::Hash;
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 mod channel;
 mod gateway;
 mod guild;
 
+mod macros {
+    #[macro_export]
+    macro_rules! create_id {
+        ($vis:vis $name:ident { $($field:tt)* }) => {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::serde::Deserialize,
+                ::serde::Serialize,
+            )]
+            $vis struct $name {
+                pub(crate) id: Snowflake,
+                $($field)*
+            }
+
+            impl ResourceId for $name {
+                type Id = Self;
+
+                fn id(&self) -> &Self::Id {
+                    self
+                }
+            }
+        };
+    }
+
+    #[macro_export]
+    macro_rules! impl_resource {
+        ($name:ident, $id:ident) => {
+            impl ResourceId for $name {
+                type Id = $id;
+
+                fn id(&self) -> &Self::Id {
+                    &self.id
+                }
+            }
+
+            impl Resource for $name {
+                fn received_at(&self) -> DateTime<Utc> {
+                    self.received_at
+                }
+            }
+        };
+    }
+}
+
 pub(self) mod prelude {
     pub use crate::{
         client::{Client, Context},
+        create_id,
         http::{Api, Route},
+        impl_resource,
     };
 
     pub use super::*;
 }
 
-pub use channel::*;
+pub use channel::{message::*, text::*, *};
 pub use gateway::*;
 pub use guild::*;
 
@@ -23,14 +77,20 @@ pub use guild::*;
 #[serde(transparent)]
 pub struct Snowflake(u64);
 
-pub trait ResourceId: Copy + Hash + Ord {
-    fn id(&self) -> Snowflake;
+impl ToString for Snowflake {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
 }
 
-pub trait Resource: Clone {
-    type Id: Eq + Hash + Send + Sync;
+pub trait ResourceId {
+    type Id: Clone + Eq + Hash + Send + Sync;
 
-    fn id(&self) -> Self::Id;
+    fn id(&self) -> &Self::Id;
+}
+
+pub trait Resource: ResourceId + Clone {
+    fn received_at(&self) -> DateTime<Utc>;
 }
 
 // TODO: Custom Serialize derivation using `Serializer::is_human_readable`

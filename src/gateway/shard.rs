@@ -17,13 +17,14 @@ use super::{
     GatewayCompression, GatewayConnectionParams, GatewayConnector, GatewayStream,
     PayloadCompression, PayloadEncoding, WsGatewayConnector,
 };
+
 use crate::{
     events::{payload::*, PayloadDelegate},
     models::Gateway,
     util::{AsyncSink, AsyncStream, NoneError},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 enum GatewayCloseCode {
     UnknownError,
@@ -164,7 +165,7 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
     // for integer/bool tag renaming.
     #[inline]
     fn deserialize_workaround_json(bytes: &[u8]) -> Cow<[u8]> {
-        Regex::new(r#""(op|unavailable)":\s*(\d+|true|false)"#)
+        Regex::new(r#""(op|unavailable|type)":\s*(\d+|true|false)"#)
             .unwrap()
             .replace_all(bytes, "\"$1\":\"$2\"".as_bytes())
     }
@@ -173,7 +174,7 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
     // for integer/bool tag renaming.
     #[inline]
     fn serialize_workaround_json(bytes: &[u8]) -> Cow<[u8]> {
-        Regex::new(r#""(op|unavailable)":\s*"(\d+|true|false)""#)
+        Regex::new(r#""(op|unavailable|type)":\s*"(\d+|true|false)""#)
             .unwrap()
             .replace_all(bytes, "\"$1\":$2".as_bytes())
     }
@@ -359,7 +360,9 @@ impl<C: GatewayConnector + Send + Sync> Shard<C> {
 impl<C: GatewayConnector + Send + Sync> Shard<C> {
     #[inline]
     fn next_heartbeat_time(state: &GatewayState<C>) -> Option<Instant> {
-        state.heartbeat_interval.map(|heartbeat_interval| state.last_heartbeat + heartbeat_interval)
+        state
+            .heartbeat_interval
+            .map(|heartbeat_interval| state.last_heartbeat + heartbeat_interval)
     }
 
     #[inline]

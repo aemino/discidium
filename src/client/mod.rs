@@ -1,13 +1,7 @@
 use anyhow::Result;
 use log::debug;
 
-use crate::{
-    events::PayloadDuplex,
-    gateway::Shard,
-    http::Http,
-    models::{Gateway, Guild},
-    store::memory::MemoryStore,
-};
+use crate::{events::PayloadDuplex, gateway::Shard, http::Http, models::{Gateway, Guild, UnavailableGuild, message::Message}, store::memory::MemoryStore};
 
 mod context;
 mod run;
@@ -51,7 +45,9 @@ impl Client {
 
         runner
             .add_payload_duplexes(shards)
-            .register_store(MemoryStore::<Guild>::new());
+            .register_store(MemoryStore::<UnavailableGuild>::new())
+            .register_store(MemoryStore::<Guild>::new())
+            .register_store(MemoryStore::<Message>::new());
 
         Ok(runner)
     }

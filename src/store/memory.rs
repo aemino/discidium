@@ -17,7 +17,7 @@ impl<R: Resource> MemoryStore<R> {
     }
 
     fn _insert(&self, resource: &R) -> Option<R> {
-        self.0.insert(resource.id(), resource.clone())
+        self.0.insert(resource.id().clone(), resource.clone())
     }
 
     fn _remove(&self, id: &R::Id) -> Option<R> {
@@ -45,7 +45,7 @@ where
         ids.iter().flat_map(|id| self._remove(id)).collect()
     }
 
-    async fn get_one(&self, id: R::Id) -> Option<R> {
+    async fn get_one(&self, id: &R::Id) -> Option<R> {
         self._get(&id)
     }
 
@@ -53,7 +53,7 @@ where
         self._insert(resource)
     }
 
-    async fn remove_one(&self, id: R::Id) -> Option<R> {
+    async fn remove_one(&self, id: &R::Id) -> Option<R> {
         self._remove(&id)
     }
 }

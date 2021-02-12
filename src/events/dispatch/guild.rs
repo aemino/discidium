@@ -1,29 +1,33 @@
+use futures_async_stream::try_stream;
 use serde::{Deserialize, Serialize};
 
-use crate::models::{Guild, GuildId};
-
-// TODO: Once enum tagging with bools is added to serde, rename with boolean
-// literals rather than strings.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "unavailable")]
-#[non_exhaustive]
-pub enum GuildCreate {
-    #[serde(rename = "false")]
-    Available(AvailableGuildCreate),
-
-    #[serde(rename = "true")]
-    Unavailable(UnavailableGuildCreate),
-}
+use crate::{
+    events::{Event, StoreUpdate},
+    models::{Guild, ResourceId, UnavailableGuild},
+    store::Store,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct AvailableGuildCreate {
+pub struct GuildCreate {
     #[serde(flatten)]
     pub guild: Guild,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[non_exhaustive]
-pub struct UnavailableGuildCreate {
-    pub id: GuildId,
+impl<S> StoreUpdate<S> for GuildCreate
+where
+    S: Store<UnavailableGuild> + Store<Guild>,
+{
+    #[try_stream(boxed, ok = Event, error = anyhow::Error)]
+    async fn update<'a>(&'a mut self, store: &'a S) {
+        store.insert_one(&self.guild).await;
+
+        let guild = self.guild.clone();
+
+        if let Some(_) = Store::<UnavailableGuild>::remove_one(store, self.guild.id()).await {
+            yield Event::GuildAvailable { guild }
+        } else {
+            yield Event::GuildJoined { guild }
+        }
+    }
 }

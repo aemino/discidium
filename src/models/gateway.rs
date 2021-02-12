@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::prelude::*;
+use crate::models::prelude::*;
 
 /// Data necessary for connecting to the gateway.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -22,7 +22,7 @@ impl Gateway {
     }
 
     /// The URL that can be used to connect to the gateway.
-    pub fn url(&self) -> &String {
+    pub fn url(&self) -> &str {
         &self.url
     }
 }
